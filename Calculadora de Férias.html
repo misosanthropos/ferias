@@ -1,0 +1,431 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Calculadora de Férias</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&family=Schibsted+Grotesk:wght@600;700&display=swap">
+<style>
+/* Layout: coluna única. Resumo e linha do tempo no topo, dados e regras logo abaixo. */
+:root{
+  --bg:#f1f2f1; --surface:#ffffff; --fg:#141816; --muted:#525b56; --line:#cfd5d1; --soft:#e6e9e7;
+  --accent:#0d6e54; --accent-ink:#ffffff; --accent-soft:#d3ebe1;
+  --warn:#8a4b00; --warn-bg:#fbe6bd; --bad:#b3261e; --good:#14683c; --good-bg:#d3ecdc;
+  --f-display:'Schibsted Grotesk',system-ui,sans-serif;
+  --f-body:'IBM Plex Sans',system-ui,sans-serif;
+  --f-num:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1211; --surface:#171c1a; --fg:#eceeed; --muted:#9ca8a2; --line:#303935; --soft:#202623;
+    --accent:#52c9a8; --accent-ink:#04201a; --accent-soft:#17382e;
+    --warn:#f3b95f; --warn-bg:#33270f; --bad:#ff8f86; --good:#7fd7a4; --good-bg:#183326;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1211; --surface:#171c1a; --fg:#eceeed; --muted:#9ca8a2; --line:#303935; --soft:#202623;
+  --accent:#52c9a8; --accent-ink:#04201a; --accent-soft:#17382e;
+  --warn:#f3b95f; --warn-bg:#33270f; --bad:#ff8f86; --good:#7fd7a4; --good-bg:#183326;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:640px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:26px;line-height:1.15;letter-spacing:-.01em}
+h2{font-size:18px;margin-bottom:10px}
+.lede{margin:6px 0 0;color:var(--muted);font-size:14px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);min-width:0}
+input,select{font:inherit;font-size:16px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 10px;width:100%;min-width:0}
+input:focus-visible,select:focus-visible,summary:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=checkbox]{width:auto}
+.check{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:var(--fg)}
+.quick{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;margin:18px 0 14px}
+@media (max-width:440px){.quick{grid-template-columns:1fr 1fr}.quick label:first-child{grid-column:1/-1}}
+.err{background:var(--warn-bg);color:var(--warn);padding:10px 12px;border-radius:6px;margin-bottom:14px}
+.sum{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);background:var(--surface);border-radius:8px;margin-bottom:22px;overflow:hidden}
+.sum .hl{background:var(--accent);color:var(--accent-ink)}
+.sum .hl .k,.sum .hl .s{color:inherit;opacity:.88}
+.sum .hl .v{color:var(--accent-ink)}
+.sum>div{padding:14px;min-width:0}
+.sum>div:nth-child(odd){border-right:1px solid var(--line)}
+.sum>div:nth-child(n+3){border-top:1px solid var(--line)}
+.sum .k{font-size:12.5px;color:var(--muted)}
+.sum .v{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:20px;font-weight:500;margin:2px 0;white-space:nowrap}
+.sum .s{font-size:12.5px;color:var(--muted)}
+.sum .v.acc{color:var(--accent)}
+.sum .v.bad{color:var(--bad)}
+.tl{list-style:none;margin:0 0 26px;padding:0;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:54px 1fr auto;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);align-items:start}
+.row .d{text-align:center;line-height:1.1;background:var(--soft);border-radius:6px;padding:7px 2px}
+.row.k-fer .d{background:var(--accent-soft)}
+.row.k-fer .d b{color:var(--accent)}
+.row.k-warn .d{background:var(--warn-bg)}
+.row.k-warn .d b{color:var(--warn)}
+.row .d b{display:block;font-family:var(--f-num);font-size:20px;font-weight:500}
+.row .d span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.row .t{font-weight:600}
+.row .s{font-size:13px;color:var(--muted)}
+.row .v{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-weight:500;font-size:16px;text-align:right;white-space:nowrap}
+.row .v.neg{color:var(--bad)}
+.row .m{min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.chip{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.good{background:var(--good-bg);color:var(--good)}
+.chip.acc{background:var(--accent-soft);color:var(--accent)}
+details{border:1px solid var(--line);background:var(--surface);border-radius:8px;margin-bottom:12px}
+summary{cursor:pointer;padding:13px 14px;font-weight:600;font-family:var(--f-display)}
+details>.in{padding:2px 14px 16px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.fields h3{grid-column:1/-1;margin:8px 0 0;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.span2{grid-column:1/-1}
+button{font:inherit;font-size:14px;padding:9px 14px;border-radius:6px;border:1px solid var(--line);background:var(--soft);color:var(--fg);cursor:pointer}
+.conf{font-size:13px;color:var(--muted);margin:0 0 12px}
+.mblock{padding:12px 0;border-top:1px solid var(--line)}
+.mblock:first-child{border-top:0}
+.mblock h4{margin:0 0 6px;font-family:var(--f-display);font-size:15px}
+dl{margin:0}
+dl>div{display:flex;justify-content:space-between;gap:12px;padding:2px 0;font-size:14px}
+dl dt{color:var(--muted);min-width:0}
+dl dd{margin:0;font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+dl .tot{border-top:1px solid var(--line);margin-top:4px;padding-top:6px;font-weight:600}
+dl .tot dt{color:var(--fg)}
+.notes{font-size:13px;color:var(--muted)}
+.notes ul{padding-left:18px;margin:6px 0 0}
+.notes li{margin-bottom:4px}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Calculadora de férias</h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <section class="quick" aria-label="Férias">
+    <label for="fStart">Início das férias<input id="fStart" type="date"></label>
+    <label for="fDias">Dias de gozo<input id="fDias" type="text" inputmode="numeric"></label>
+    <label for="fAbono">Dias vendidos<input id="fAbono" type="text" inputmode="numeric"></label>
+  </section>
+
+  <div class="err" id="err" hidden></div>
+  <section class="sum" id="sum" aria-live="polite"></section>
+
+  <section>
+    <h2>Quando e quanto cai na conta</h2>
+    <ol class="tl" id="tl"></ol>
+  </section>
+
+  <details id="dados">
+    <summary>Meus dados e regras</summary>
+    <div class="in">
+      <div class="fields">
+        <h3>Salário</h3>
+        <label for="fBase">Salário base (R$)<input id="fBase" type="text" inputmode="decimal"></label>
+        <label for="fAdic">Adicional / dupla função (%)<input id="fAdic" type="text" inputmode="decimal"></label>
+        <label for="fMedia">Médias na base das férias (R$)<input id="fMedia" type="text" inputmode="decimal"></label>
+        <label for="fAjuda">Ajuda de custo (R$)<input id="fAjuda" type="text" inputmode="decimal"></label>
+        <label for="fAjudaMode" class="span2">Ajuda de custo em mês incompleto
+          <select id="fAjudaMode"><option value="prop">Proporcional aos dias trabalhados</option><option value="full">Integral se trabalhou algum dia</option></select>
+        </label>
+
+        <h3>Pagamentos</h3>
+        <label for="fValePct">Vale (% do salário base)<input id="fValePct" type="text" inputmode="decimal"></label>
+        <label for="fValeDay">Dia do vale<input id="fValeDay" type="text" inputmode="numeric"></label>
+        <label for="fPayDay">Salário no dia útil nº<input id="fPayDay" type="text" inputmode="numeric"></label>
+        <label class="check span2" for="fSat"><input id="fSat" type="checkbox"> Contar sábado como dia útil</label>
+        <label for="fHol" class="span2">Feriados extras (dd/mm, separados por vírgula)<input id="fHol" type="text" placeholder="ex.: 03/03, 18/06"></label>
+
+        <h3>Descontos</h3>
+        <label for="fInssMode" class="span2">INSS
+          <select id="fInssMode"><option value="prog">Tabela progressiva 2026</option><option value="fixed">Percentual fixo</option></select>
+        </label>
+        <label for="fInssPct">INSS fixo (%)<input id="fInssPct" type="text" inputmode="decimal"></label>
+        <label for="fAssist">Contribuição assistencial (% do base)<input id="fAssist" type="text" inputmode="decimal"></label>
+        <label class="check span2" for="fIrrf"><input id="fIrrf" type="checkbox"> Calcular IRRF (isento até R$ 5.000)</label>
+
+        <h3>Vale nos meses da saída e do retorno</h3>
+        <label for="fValeS">Mês da saída
+          <select id="fValeS"><option value="auto">Automático</option><option value="full">Integral</option><option value="prop">Proporcional</option><option value="zero">Não recebe</option><option value="manual">Valor informado</option></select>
+        </label>
+        <label for="fValeSv" id="lValeSv" hidden>Valor (R$)<input id="fValeSv" type="text" inputmode="decimal"></label>
+        <label for="fValeR">Mês do retorno
+          <select id="fValeR"><option value="auto">Automático</option><option value="full">Integral</option><option value="prop">Proporcional</option><option value="zero">Não recebe</option><option value="manual">Valor informado</option></select>
+        </label>
+        <label for="fValeRv" id="lValeRv" hidden>Valor (R$)<input id="fValeRv" type="text" inputmode="decimal"></label>
+
+        <h3>Dias trabalhados (deixe vazio para calcular)</h3>
+        <label for="fWS">Mês da saída<input id="fWS" type="text" inputmode="numeric"></label>
+        <label for="fWR">Mês do retorno<input id="fWR" type="text" inputmode="numeric"></label>
+
+        <h3>Conferência</h3>
+        <label for="fConf" class="span2">Líquido que você recebe hoje no dia útil (R$)<input id="fConf" type="text" inputmode="decimal"></label>
+      </div>
+      <p class="conf" id="conf"></p>
+      <button type="button" id="reset">Restaurar valores de exemplo</button>
+    </div>
+  </details>
+
+  <details>
+    <summary>Como cada valor foi calculado</summary>
+    <div class="in" id="memo"></div>
+  </details>
+
+  <section class="notes">
+    <ul>
+      <li>Os valores são estimativas. Confira com o holerite e ajuste dias trabalhados ou vale se a empresa calcular diferente.</li>
+      <li>INSS pela tabela progressiva de 2026 (teto de R$ 8.475,55). IRRF com a isenção até R$ 5.000 e sem dependentes.</li>
+      <li>O INSS das férias é calculado junto com o salário do mês da saída, e o líquido das férias já vem com a parte que cabe a elas. O IRRF das férias é calculado à parte.</li>
+      <li>Vale do mês da saída no automático: se o dia do vale cai nas férias, ele só vem integral quando você já trabalhou pelo menos 16 dias (mês de 31 dias) ou 15 dias (demais meses). Do contrário, tudo vem no dia útil.</li>
+      <li>A ajuda de custo não entra na base das férias. Meses são contados com base de 30 dias.</li>
+      <li>A reserva é o quanto das férias você precisa deixar guardado para que cada pagamento menor volte ao valor de um mês normal.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const MS=86400000;
+const r2=x=>Math.round((x+Number.EPSILON)*100)/100;
+const D=(y,m,d)=>new Date(Date.UTC(y,m-1,d,12));
+const addDays=(dt,n)=>new Date(dt.getTime()+n*MS);
+const dimOf=(y,m)=>new Date(Date.UTC(y,m,0)).getUTCDate();
+const keyOf=dt=>dt.toISOString().slice(0,10);
+const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+function parseISO(s){const p=String(s||'').split('-').map(Number);if(p.length!==3||p.some(isNaN))return null;return D(p[0],p[1],p[2]);}
+function easter(y){
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3);
+  const h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
+  const mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
+  return D(y,mo,da);
+}
+const holCache={};
+function holidays(y,extra){
+  const ck=y+'|'+extra; if(holCache[ck])return holCache[ck];
+  const s=new Set();
+  [[1,1],[4,21],[5,1],[9,7],[10,12],[11,2],[11,15],[11,20],[12,25]].forEach(([m,d])=>s.add(keyOf(D(y,m,d))));
+  s.add(keyOf(addDays(easter(y),-2)));
+  String(extra||'').split(/[\n,;]+/).forEach(t=>{
+    const m=t.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/);
+    if(m){const yy=m[3]?+m[3]:y; if(yy===y)s.add(keyOf(D(y,+m[2],+m[1])));}
+  });
+  holCache[ck]=s; return s;
+}
+function isBiz(dt,sat,extra){
+  const w=dt.getUTCDay(); if(w===0)return false; if(w===6&&!sat)return false;
+  return !holidays(dt.getUTCFullYear(),extra).has(keyOf(dt));
+}
+function nthBiz(y,m,n,sat,extra){
+  let c=0; const n2=dimOf(y,m);
+  for(let d=1;d<=n2;d++){const dt=D(y,m,d); if(isBiz(dt,sat,extra)){c++; if(c===n)return dt;}}
+  return D(y,m,n2);
+}
+function prevBiz(dt,extra){let x=dt; while(!isBiz(x,false,extra)) x=addDays(x,-1); return x;}
+
+function inssProg(b){
+  const t=[[1621,.075],[2902.84,.09],[4354.27,.12],[8475.55,.14]]; let prev=0,tot=0;
+  for(const [l,r] of t){ if(b>prev) tot+=(Math.min(b,l)-prev)*r; prev=l; }
+  return r2(tot);
+}
+function irrfCalc(b,inss){
+  if(b<=0) return 0;
+  const base=Math.max(0,b-Math.max(inss,607.20));
+  const T=[[2428.80,0,0],[2826.65,.075,182.16],[3751.05,.15,394.16],[4664.68,.225,675.49],[Infinity,.275,908.73]];
+  let tax=0; for(const [l,r,d] of T){ if(base<=l){tax=base*r-d;break;} }
+  tax=Math.max(0,tax);
+  let red=0; if(b<=5000) red=tax; else if(b<=7350) red=Math.min(tax,Math.max(0,978.62-0.133145*b));
+  return r2(Math.max(0,tax-red));
+}
+
+function calc(I){
+  const start=parseISO(I.start);
+  if(!start) return {error:'Informe a data de início das férias.'};
+  const gozo=Math.min(60,Math.max(1,Math.round(I.diasGozo||30)));
+  const abonoD=Math.min(10,Math.max(0,Math.round(I.diasAbono||0)));
+  const end=addDays(start,gozo-1), ret=addDays(end,1);
+  const ex=I.extraHol||'';
+  const inss=b=>I.inssMode==='prog'?inssProg(b):r2(b*(I.inssPct||0)/100);
+  const ir=(b,i)=>I.irrf?irrfCalc(b,i):0;
+  const remBase=I.base*(1+I.adicPct/100)+I.media;
+  const ferGoz=r2(remBase/30*gozo), ferTerco=r2(ferGoz/3), abono=r2(remBase/30*abonoD*4/3);
+  const feriasDate=prevBiz(addDays(start,-2),ex);
+  const valeFull=r2(I.base*I.valePct/100);
+
+  function sal(w,vale){
+    const gross=r2(I.base*w/30), adic=r2(I.base*I.adicPct/100*w/30);
+    const ajuda=I.ajudaMode==='prop'?r2(I.ajuda*w/30):(w>0?I.ajuda:0);
+    const assist=r2(I.base*I.assistPct/100*w/30);
+    const tax=gross+adic, i1=inss(tax), r1=ir(tax,i1);
+    return {w,gross,adic,ajuda,assist,tax,inss:i1,ir:r1,vale,net:r2(gross+adic+ajuda-i1-r1-assist-vale)};
+  }
+
+  const list=[]; let y=start.getUTCFullYear(), m=start.getUTCMonth()+1;
+  const ey=end.getUTCFullYear(), em=end.getUTCMonth()+1;
+  for(;;){ list.push({y,m}); if(y===ey&&m===em)break; m++; if(m>12){m=1;y++;} }
+  m++; if(m>12){m=1;y++;} list.push({y,m});
+
+  let ferInss=0,ferIr=0;
+  const months=list.map((mm,i)=>{
+    const n=dimOf(mm.y,mm.m), first=D(mm.y,mm.m,1), last=D(mm.y,mm.m,n);
+    const lo=start>first?start:first, hi=end<last?end:last;
+    const vd=hi>=lo?Math.round((hi-lo)/MS)+1:0, nonvac=n-vd;
+    const endsHere=end>=first&&end<=last;
+    let w; if(vd===0)w=30; else if(nonvac===0)w=0; else if(endsHere)w=Math.max(0,30-vd); else w=Math.min(30,nonvac);
+    if(i===0&&I.wStart!=null)w=Math.min(30,Math.max(0,I.wStart));
+    else if(i>0&&endsHere&&I.wEnd!=null)w=Math.min(30,Math.max(0,I.wEnd));
+    const valeDate=D(mm.y,mm.m,Math.min(Math.max(1,I.valeDay||20),n));
+    const inVac=valeDate>=start&&valeDate<=end;
+    let mode='auto',manual=0;
+    if(i===0){mode=I.valeS;manual=I.valeSv||0;} else if(endsHere){mode=I.valeR;manual=I.valeRv||0;}
+    let vale,note;
+    if(w===0){vale=0;note='mês inteiro de férias';}
+    else if(mode==='full'){vale=valeFull;note='integral';}
+    else if(mode==='prop'){vale=r2(valeFull*w/30);note='proporcional ('+w+'/30 dias)';}
+    else if(mode==='zero'){vale=0;note='sem vale';}
+    else if(mode==='manual'){vale=r2(manual);note='valor informado';}
+    else if(inVac){
+      const trab=start.getUTCDate()-1, min=n===31?16:15;
+      if(i===0&&trab>=min){vale=valeFull;note='normal: já trabalhou '+trab+' dias (mínimo '+min+')';}
+      else if(i===0){vale=0;note='sem vale: só '+trab+' dias trabalhados (mínimo '+min+')';}
+      else {vale=0;note='sem vale: você está de férias';}
+    }
+    else if(vd===0){vale=valeFull;note='normal';}
+    else if(valeDate<start){vale=valeFull;note='normal, antes das férias';}
+    else {vale=r2(valeFull*w/30);note='proporcional ('+w+'/30 dias)';}
+    const s=sal(w,vale);
+    if(i===0){
+      const taxFer=ferGoz+ferTerco, iT=inss(s.tax+taxFer);
+      ferInss=r2(iT-s.inss); ferIr=ir(taxFer,ferInss);
+    }
+    return Object.assign({y:mm.y,m:mm.m,vd,valeDate,valeNote:note,isStart:i===0,isReturn:i>0&&endsHere},s);
+  });
+
+  const ferNet=r2(ferGoz+ferTerco+abono-ferInss-ferIr);
+  const normal=sal(30,valeFull);
+  const slots=[{kind:'ferias',date:feriasDate,valor:ferNet,normal:0}];
+  months.forEach(mo=>{
+    slots.push({kind:'vale',date:mo.valeDate,valor:mo.vale,normal:valeFull,month:mo});
+    let ny=mo.y,nm=mo.m+1; if(nm>12){nm=1;ny++;}
+    slots.push({kind:'salario',date:nthBiz(ny,nm,I.payDay||5,I.sat,ex),valor:mo.net,normal:normal.net,month:mo});
+  });
+  const m0=months[0];
+  slots.push({kind:'salario',date:nthBiz(m0.y,m0.m,I.payDay||5,I.sat,ex),valor:normal.net,normal:normal.net,prev:true,month:{y:m0.m===1?m0.y-1:m0.y,m:m0.m===1?12:m0.m-1,w:30}});
+  const order={ferias:0,vale:1,salario:2};
+  const used=slots.filter(s=>s.kind==='ferias'||s.date>=feriasDate)
+    .sort((a,b)=>(a.date-b.date)||(order[a.kind]-order[b.kind]));
+  used.forEach(s=>{s.delta=r2(s.valor-s.normal);});
+  let cum=0,minCum=0;
+  used.forEach(s=>{ if(s.kind==='ferias')return; cum=r2(cum+s.delta); if(cum<minCum)minCum=cum; });
+  const reserve=r2(-minCum); let bal=reserve;
+  used.forEach(s=>{ if(s.kind==='ferias'){s.balAfter=bal;return;} bal=r2(bal+s.delta); s.balAfter=bal; });
+  const free=r2(ferNet-reserve);
+  let worst=null; used.forEach(s=>{ if(s.kind!=='ferias'&&(!worst||s.delta<worst.delta))worst=s; });
+  return {start,end,ret,gozo,abonoD,feriasDate,
+    ferias:{goz:ferGoz,terco:ferTerco,abono,inss:ferInss,ir:ferIr,net:ferNet},
+    months,slots:used,reserve,finalBal:bal,free,shortfall:free<0?-free:0,worst,normal,valeFull};
+}
+/*--UI--*/
+const FIELDS=['fStart','fDias','fAbono','fBase','fAdic','fMedia','fAjuda','fAjudaMode','fValePct','fValeDay','fPayDay','fSat','fInssMode','fInssPct','fAssist','fIrrf','fValeS','fValeSv','fValeR','fValeRv','fWS','fWR','fHol','fConf'];
+const DEF={fStart:'2027-07-16',fDias:'30',fAbono:'0',fBase:'2332,00',fAdic:'20',fMedia:'0',fAjuda:'400,00',fAjudaMode:'prop',fValePct:'40',fValeDay:'20',fPayDay:'5',fSat:false,fInssMode:'prog',fInssPct:'8,13',fAssist:'1',fIrrf:true,fValeS:'auto',fValeSv:'',fValeR:'auto',fValeRv:'',fWS:'',fWR:'',fHol:'',fConf:'2014,75'};
+const STORE='ferias-calc-v1';
+const $=id=>document.getElementById(id);
+const brl=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const money=x=>brl.format(Math.abs(x)<0.005?0:x);
+const WD=['dom','seg','ter','qua','qui','sex','sáb'];
+const MS3=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const p2=n=>String(n).padStart(2,'0');
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const dBr=dt=>p2(dt.getUTCDate())+'/'+p2(dt.getUTCMonth()+1)+'/'+dt.getUTCFullYear();
+function num(s){
+  s=String(s==null?'':s).trim(); if(s==='')return NaN;
+  if(s.indexOf(',')>=0) s=s.replace(/\./g,'').replace(',','.');
+  const v=parseFloat(s); return isNaN(v)?NaN:v;
+}
+const n0=s=>{const v=num(s);return isNaN(v)?0:v;};
+const nn=s=>{const v=num(s);return isNaN(v)?null:v;};
+
+function setAll(vals){
+  FIELDS.forEach(id=>{const el=$(id); const v=vals[id]; if(v===undefined)return; if(el.type==='checkbox')el.checked=!!v; else el.value=v;});
+}
+function getAll(){
+  const o={}; FIELDS.forEach(id=>{const el=$(id); o[id]=el.type==='checkbox'?el.checked:el.value;}); return o;
+}
+function readInputs(){
+  const v=getAll();
+  return {start:v.fStart,diasGozo:n0(v.fDias)||30,diasAbono:n0(v.fAbono),base:n0(v.fBase),adicPct:n0(v.fAdic),media:n0(v.fMedia),
+    ajuda:n0(v.fAjuda),ajudaMode:v.fAjudaMode,valePct:n0(v.fValePct),valeDay:n0(v.fValeDay)||20,payDay:n0(v.fPayDay)||5,sat:v.fSat,extraHol:v.fHol,
+    inssMode:v.fInssMode,inssPct:n0(v.fInssPct),assistPct:n0(v.fAssist),irrf:v.fIrrf,
+    valeS:v.fValeS,valeSv:n0(v.fValeSv),valeR:v.fValeR,valeRv:n0(v.fValeRv),wStart:nn(v.fWS),wEnd:nn(v.fWR),conf:nn(v.fConf)};
+}
+function row(s,I){
+  const dt=s.date, m=s.month; let t,sub,chips='';
+  if(s.kind==='ferias'){
+    t='Férias líquidas';
+    sub=(I.diasAbono?'Gozo + 1/3 + abono':'Gozo + 1/3')+', pagas até 2 dias antes';
+  } else if(s.kind==='vale'){
+    t='Vale do dia '+I.valeDay;
+    sub=cap(MESES[m.m-1])+': '+m.valeNote;
+  } else {
+    t='Salário de '+MESES[m.m-1];
+    sub=s.prev?'Mês normal, antes das férias':(m.w===0?'Mês inteiro de férias':m.w+' dias trabalhados, já descontado o vale');
+  }
+  if(s.kind==='ferias'){
+    chips+='<span class="chip acc">Separar '+money(app.reserve)+' para a reserva</span>';
+  } else {
+    if(s.delta<-0.005) chips+='<span class="chip warn">'+money(s.delta)+' vs. normal</span><span class="chip warn">Tirar '+money(-s.delta)+' da reserva</span>';
+    else if(s.delta>0.005) chips+='<span class="chip good">+'+money(s.delta)+' vs. normal</span><span class="chip good">Guardar '+money(s.delta)+'</span>';
+    else chips+='<span class="chip">Igual ao mês normal</span>';
+    chips+='<span class="chip">Reserva: '+money(s.balAfter)+'</span>';
+  }
+  const rc=s.kind==='ferias'?' k-fer':(s.delta<-0.005?' k-warn':'');
+  return '<li class="row'+rc+'"><div class="d"><b>'+p2(dt.getUTCDate())+'</b><span>'+MS3[dt.getUTCMonth()]+' · '+WD[dt.getUTCDay()]+'</span></div>'
+    +'<div class="m"><div class="t">'+t+'</div><div class="s">'+sub+'</div><div class="chips">'+chips+'</div></div>'
+    +'<div class="v'+(s.valor<-0.005?' neg':'')+'">'+money(s.valor)+'</div></li>';
+}
+function line(k,v,cls){return '<div'+(cls?' class="'+cls+'"':'')+'><dt>'+k+'</dt><dd>'+v+'</dd></div>';}
+let app=null;
+function render(){
+  const I=readInputs();
+  $('lValeSv').hidden=$('fValeS').value!=='manual';
+  $('lValeRv').hidden=$('fValeR').value!=='manual';
+  const R=calc(I); const err=$('err');
+  if(R.error){err.hidden=false;err.textContent=R.error;$('sum').innerHTML='';$('tl').innerHTML='';$('memo').innerHTML='';return;}
+  err.hidden=true; app=R;
+  $('lede').textContent='Férias de '+dBr(R.start)+' a '+dBr(R.end)+', volta em '+dBr(R.ret)+' ('+WD[R.ret.getUTCDay()]+'). Mês normal: vale '+money(R.valeFull)+' e '+money(R.normal.net)+' no '+I.payDay+'º dia útil.';
+  const f=R.ferias;
+  $('sum').innerHTML=
+    '<div class="hl"><div class="k">Férias líquidas</div><div class="v">'+money(f.net)+'</div><div class="s">Cai em '+WD[R.feriasDate.getUTCDay()]+', '+dBr(R.feriasDate)+'</div></div>'
+   +'<div><div class="k">Separar das férias</div><div class="v">'+money(R.reserve)+'</div><div class="s">Cobre os pagamentos menores</div></div>'
+   +'<div><div class="k">Livre para gastar</div><div class="v'+(R.shortfall>0?' bad':'')+'">'+money(R.shortfall>0?-R.shortfall:R.free)+'</div><div class="s">'+(R.shortfall>0?'Faltam '+money(R.shortfall)+' na sua caixinha':'Das férias, depois da reserva')+'</div></div>'
+   +'<div><div class="k">Maior queda</div><div class="v">'+(R.worst&&R.worst.delta<-0.005?money(R.worst.delta):money(0))+'</div><div class="s">'+(R.worst&&R.worst.delta<-0.005?(R.worst.kind==='vale'?'Vale':'Salário')+' de '+dBr(R.worst.date).slice(0,5):'Sem queda')+'</div></div>';
+  $('tl').innerHTML=R.slots.map(s=>row(s,I)).join('');
+  let memo='<div class="mblock"><h4>Férias ('+R.gozo+' dias'+(R.abonoD?' + '+R.abonoD+' vendidos':'')+')</h4><dl>'
+    +line('Férias de '+R.gozo+' dias',money(f.goz))+line('1/3 constitucional',money(f.terco))
+    +(f.abono?line('Abono pecuniário + 1/3',money(f.abono)):'')
+    +line('(−) INSS',money(f.inss))+(f.ir?line('(−) IRRF',money(f.ir)):'')
+    +line('Líquido das férias',money(f.net),'tot')+'</dl></div>';
+  R.months.forEach(mo=>{
+    memo+='<div class="mblock"><h4>'+MESES[mo.m-1][0].toUpperCase()+MESES[mo.m-1].slice(1)+'/'+mo.y+' · '+mo.w+' dias trabalhados</h4><dl>'
+      +line('Salário proporcional',money(mo.gross))+(mo.adic?line('Adicional proporcional',money(mo.adic)):'')
+      +(mo.ajuda?line('Ajuda de custo',money(mo.ajuda)):'')
+      +line('(−) INSS'+(mo.isStart?' (parte do salário)':''),money(mo.inss))
+      +(mo.ir?line('(−) IRRF',money(mo.ir)):'')
+      +(mo.assist?line('(−) Contribuição assistencial',money(mo.assist)):'')
+      +line('(−) Vale pago no dia '+I.valeDay,money(mo.vale))
+      +line('Líquido no dia útil seguinte',money(mo.net),'tot')+'</dl></div>';
+  });
+  $('memo').innerHTML=memo;
+  const c=$('conf');
+  if(I.conf!=null){const d=r2(R.normal.net-I.conf); c.textContent='Calculado para um mês normal: '+money(R.normal.net)+'. Você informou '+money(I.conf)+(Math.abs(d)<0.5?'. Confere.':' (diferença de '+money(d)+'). Ajuste INSS, assistencial ou ajuda de custo para bater com o holerite.');}
+  else c.textContent='Calculado para um mês normal: '+money(R.normal.net)+'.';
+}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(getAll()));}catch(e){}}
+function load(){try{const s=localStorage.getItem(STORE);if(s)return JSON.parse(s);}catch(e){}return null;}
+function init(){
+  setAll(Object.assign({},DEF,load()||{}));
+  FIELDS.forEach(id=>{const el=$(id); const h=()=>{render();save();}; el.addEventListener('input',h); el.addEventListener('change',h);});
+  $('reset').addEventListener('click',()=>{setAll(DEF);render();save();});
+  render();
+}
+init();
+</script>
+
+</body></html>
